@@ -11,6 +11,8 @@ import android.widget.TextView;
 import com.pedromassango.doubleclick.DoubleClick;
 import com.pedromassango.doubleclick.DoubleClickListener;
 
+import java.lang.ref.WeakReference;
+
 public class MainActivity extends AppCompatActivity implements View.OnLongClickListener, DoubleClickListener {
     TextView counterArea;
     TextView mElapse;
@@ -21,6 +23,7 @@ public class MainActivity extends AppCompatActivity implements View.OnLongClickL
     final static int RUNNING = 1;
     final static int PAUSE = 2;
     int mState = IDLE;
+    final String initTime = "Touch";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,18 +36,32 @@ public class MainActivity extends AppCompatActivity implements View.OnLongClickL
         counterArea.setOnLongClickListener(this);
 
         mElapse = findViewById(R.id.stopwatch_area);
-        mElapse.setText("00:00");
+        mElapse.setText(initTime);
         mElapse.setOnClickListener(new DoubleClick(this, 300));
         mElapse.setOnLongClickListener(this);
     }
 
-    final Handler mTimer = new Handler(){
+    private final MyHandler mTimer = new MyHandler(this);
+
+    private static class MyHandler extends Handler {
+        private final WeakReference<MainActivity> mActivity;
+        public MyHandler(MainActivity activity) {
+            mActivity = new WeakReference<>(activity);
+        }
+
         @Override
         public void handleMessage(Message msg) {
-            mElapse.setText(getElapse());
-            mTimer.sendEmptyMessage(0);
+            MainActivity activity = mActivity.get();
+            if(activity != null) {
+                activity.handleMessage(msg);
+            }
         }
-    };
+    }
+
+    private void handleMessage(Message msg) {
+        mElapse.setText(getElapse());
+        mTimer.sendEmptyMessage(0);
+    }
 
     @Override
     protected void onDestroy() {
@@ -59,6 +76,7 @@ public class MainActivity extends AppCompatActivity implements View.OnLongClickL
                 count++;
                 counterArea.setText(String.valueOf(count));
                 break;
+
             case R.id.stopwatch_area:
                 switch(mState) {
                     case IDLE:
@@ -91,7 +109,7 @@ public class MainActivity extends AppCompatActivity implements View.OnLongClickL
                 break;
             case R.id.stopwatch_area:
                 mTimer.removeMessages(0);
-                mElapse.setText("00:00");
+                mElapse.setText(initTime);
                 mState = IDLE;
                 break;
 
@@ -107,7 +125,7 @@ public class MainActivity extends AppCompatActivity implements View.OnLongClickL
                 break;
             case R.id.stopwatch_area:
                 mTimer.removeMessages(0);
-                mElapse.setText("00:00");
+                mElapse.setText(initTime);
                 mState = IDLE;
                 break;
         }
